@@ -7,11 +7,10 @@ output: github_document
 
 ### Load packages and data
 
-Having trouble installing MASS... come back later if needed
-
 ```{r load-packages, message=FALSE, warning=FALSE}
 library(tidyverse) 
 library(ggplot2)
+library(MASS)
 ```
 
 ### Exercise 1: Simulating our colonists
@@ -43,33 +42,6 @@ Age follows a normal distribution, centered at around 30 years old. The spread o
 #### 1.2
 
 ```{r role}
-set.seed(1)
-roleA <- rep(c("engineer", "scientist", "medic"),
-  length.out = 100
-)
-# this works if we want to set a specific number of each role
-roleB <- rep(c("engineer", "scientist", "medic"),
-  each = 34,
-  length.out = 100
-)
-
-roleC <- rep(c("engineer", "scientist", "medic"),
-  times = c(33, 33, 33),
-  length.out = 100
-)
-
-# if you want to use sampling weights
-roleD <- sample(c("engineer", "scientist", "medic"),
-  replace = TRUE,
-  size = 100, prob = c(1, 1, 1)
-)
-
-# if you want to randomly shuffle
-
-roleE <- sample(roleB, size = 100, replace = FALSE)
-
-# my final code
-
 df_colonists$role <- rep(c("engineer", "scientist", "medic"),
                          times = c(33, 33, 33),
                          length.out = 100
@@ -78,7 +50,7 @@ df_colonists$role <- rep(c("engineer", "scientist", "medic"),
 
 #### 1.3
 
-I wanted about equal numbers of engineers, medics, and scientists, so I used method C.
+I wanted approximately equal numbers of engineers, medics, and scientists, so I used method C.
 
 #### 1.4
 
@@ -95,7 +67,7 @@ df_colonists %>%
   geom_smooth(method = "lm", se = FALSE)
 ```
 
-No relationship between age and MARSGAR score.
+No relationship between age and MARSGAR score due to simulation specifications.
 
 ### Exercise 2: Growing our colonists
 
@@ -139,4 +111,131 @@ df_colonists %>%
 
 ### Exercise 3: Exploring correlations with mvnorm
 
+#### 3.1
+
+```{r agreeableness-resilience, message=FALSE}
+set.seed(123)
+
+mean_traits <- c(50, 50)
+cov_matrix <- matrix(c(100, 50, 50, 100), ncol = 2)
+
+traits_data <- mvrnorm(n = 100, mu = mean_traits, Sigma = cov_matrix, empirical = FALSE)
+
+colnames(traits_data) <- c("Resilience", "Agreeableness")
+
+traits_dataframe <- as.data.frame(traits_data)
+
+traits_dataframe %>%
+  ggplot(aes(x = Resilience, y = Agreeableness)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(x = "Resilience", y = "Agreeableness") +
+  theme_minimal()
+
+df_colonists <- cbind(df_colonists, traits_dataframe)
+```
+
+#### 3.2
+
+```{r bigfive-simulation}
+seed <- 123
+set.seed(seed)
+
+library(MASS)
+library(Matrix)
+library(tidyverse)
+library(conflicted)
+conflicts_prefer(dplyr::select())
+
+n_colonists <- 100
+
+var_names <- c("EX", "ES", "AG", "CO", "OP")
+
+mean_traits <- c(-.5, .5, .25, .5, 0) 
+sd_traits <- c(1, .9, 1, 1, 1) 
+
+
+cor_matrix_bigfive <- matrix(
+  c(
+1.0000, 0.2599, 0.1972, 0.1860, 0.2949,
+0.2599, 1.0000, 0.1576, 0.2306, 0.0720,
+0.1972, 0.1576, 1.0000, 0.2866, 0.1951,
+0.1860, 0.2306, 0.2866, 1.0000, 0.1574,
+0.2949, 0.0720, 0.1951, 0.1574, 1.0000
+  ),
+  nrow = 5, ncol = 5, byrow = TRUE,
+  dimnames = list(
+c("EX", "ES", "AG", "CO", "OP"),
+c("EX", "ES", "AG", "CO", "OP")
+  )
+)
+
+cov_matrix_bigfive <- cor_matrix_bigfive * (sd_traits %*% t(sd_traits))
+
+
+bigfive_data <- mvrnorm(n = 100, mu = mean_traits, Sigma = cov_matrix_bigfive)
+
+bigfive_data <- cbind.data.frame(
+  colonist_id = 1:n_colonists,
+  seed = seed, 
+  bigfive_data
+) 
+```
+
+```{r bigfive-summary}
+mean(bigfive_data$EX)
+sd(bigfive_data$EX)
+
+mean(bigfive_data$ES)
+sd(bigfive_data$ES)
+
+mean(bigfive_data$AG)
+sd(bigfive_data$AG)
+
+mean(bigfive_data$CO)
+sd(bigfive_data$CO)
+
+mean(bigfive_data$OP)
+sd(bigfive_data$OP)
+```
+
+### Exercise 4: Preparing for the unexpected
+
+#### 4.1
+
+```{r bigfive-replication}
+library(dplyr)
+conflicts_prefer(dplyr::select())
+set.seed(123)
+num_simulations <- 100
+
+all_simulations <- data.frame()
+
+for (i in 1:num_simulations) {
+  simulated_data <- mvrnorm(n = 100, mu = mean_traits, Sigma = cov_matrix_bigfive) 
+  
+  simulated_data <- cbind.data.frame(
+colonist_id = 1:n_colonists, 
+rep = i,
+simulated_data
+  ) 
+
+  all_simulations <- rbind(all_simulations, simulated_data)
+}
+
+summary_stats <- all_simulations %>%
+  group_by(rep) %>%
+  select(EX, rep) %>%
+  summarize(across(everything(), list(mean = mean, sd = sd)))
+
+summary_stats
+
+summary_stats_cor <- simulated_data %>%
+  group_by(rep) %>%
+  select(rep, EX, OP) %>%
+  cor() 
+
+summary_stats_cor
+
+```
 
