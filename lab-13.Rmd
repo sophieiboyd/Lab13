@@ -35,10 +35,10 @@ df_colonists %>%
   ggplot(aes(x = age)) +
   geom_histogram(binwidth=5) +
   labs(x = 'Age', 
-       y = 'Frequency')
+       y = 'Frequency') 
 ```
 
-Age follows a normal distribution, centered at around 30 years old. The spread of the distribution is the same regardless of seed because the standard deviation was set at the same value each time. 
+Age follows a normal distribution, centered at around 30 years old. The spread of the distribution is the same regardless of seed because the standard deviation was set at the same value each time (referring to the plot in the lab instructions). 
 
 #### 1.2
 
@@ -67,6 +67,13 @@ roleD <- sample(c("engineer", "scientist", "medic"),
 # if you want to randomly shuffle
 
 roleE <- sample(roleB, size = 100, replace = FALSE)
+
+# my final code
+
+df_colonists$role <- rep(c("engineer", "scientist", "medic"),
+                         times = c(33, 33, 33),
+                         length.out = 100
+                         )
 ```
 
 #### 1.3
@@ -81,7 +88,7 @@ set.seed(123)
 df_colonists$marsgar <- runif(n = 100, min = 0, max = 100)
 ```
 
-```{r marsgar-by-age}
+```{r marsgar-by-age, message=FALSE}
 df_colonists %>%
   ggplot(aes(x = age, y = marsgar)) +
   geom_point() +
@@ -91,5 +98,45 @@ df_colonists %>%
 No relationship between age and MARSGAR score.
 
 ### Exercise 2: Growing our colonists
+
+#### 2.1
+
+```{r tech-skills}
+set.seed(123)
+
+df_colonists$technical_skills <- 2 * df_colonists$age + rnorm(100, mean = 0, sd = 1)
+```
+
+```{r age-tech-plot, message=FALSE}
+df_colonists %>%
+  ggplot(aes(x = age, y = technical_skills)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) + 
+  labs(x = 'Age',
+       y = 'Technical Skills')
+```
+
+#### 2.2
+
+```{r prob-solving-role}
+set.seed(123)
+
+df_colonists$problem_solving[df_colonists$role == "engineer"] <- rnorm(sum(df_colonists$role == "engineer"), mean = 9, sd = 1)
+df_colonists$problem_solving[df_colonists$role == "scientist"] <- rnorm(sum(df_colonists$role == "scientist"), mean = 7, sd = 1)
+df_colonists$problem_solving[df_colonists$role == "medic"] <- rnorm(sum(df_colonists$role == "medic"), mean = 6, sd = 1)
+```
+
+```{r ps-role-plot}
+df_colonists %>%
+  ggplot(aes(x = problem_solving, fill = role)) +
+  geom_density(alpha = .5) + 
+  labs(x = 'Problem-Solving Skills',
+       y = 'Count',
+       fill = 'Role') +
+  scale_fill_viridis_d() +
+  theme_minimal()
+```
+
+### Exercise 3: Exploring correlations with mvnorm
 
 
