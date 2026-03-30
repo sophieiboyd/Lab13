@@ -37,10 +37,12 @@ df_colonists %>%
        y = 'Frequency') 
 ```
 
+#### 1.2
+
 Age follows a normal distribution, centered at 30 years old. 
 The spread of the distribution is the same regardless of seed because the standard deviation was set at the same value each time (referring to the plot in the lab instructions). 
 
-#### 1.2
+#### 1.3
 
 ```{r role}
 df_colonists$role <- rep(c("engineer", "scientist", "medic"),
@@ -49,7 +51,6 @@ df_colonists$role <- rep(c("engineer", "scientist", "medic"),
                          )
 ```
 
-#### 1.3
 
 I wanted approximately equal numbers of engineers, medics, and scientists, so I used method C.
 
@@ -138,7 +139,7 @@ df_colonists <- cbind(df_colonists, traits_dataframe)
 
 #### 3.3
 
-```{r bigfive-simulation}
+```{r bigfive-simulation, message=FALSE}
 seed <- 123
 set.seed(seed)
 
@@ -183,6 +184,7 @@ bigfive_data <- cbind.data.frame(
 ) 
 ```
 
+
 ```{r bigfive-summary}
 
 summary_stats_mean <- bigfive_data %>%
@@ -213,6 +215,8 @@ The means, standard deviations, and correlations from the simulation were close 
 
 #### 4.1
 
+##### Running the repeated simulations and extracting descriptives/correlations by rep
+
 ```{r bigfive-replication}
 library(dplyr)
 conflicts_prefer(dplyr::select())
@@ -234,23 +238,11 @@ simulated_data
 }
 
 summary_stats <- all_simulations %>%
-  group_by(rep) %>%
   select(EX, rep) %>%
+  group_by(rep) %>%
   summarize(across(everything(), list(mean = mean, sd = sd)))
 
 summary_stats
-
-summary_stats_mean <- all_simulations %>%
-  select(-colonist_id) %>%
-  summarize(across(everything(), list(mean = mean))) %>%
-  rbind(mean_traits)
-
-summary_stats_sd <- all_simulations %>%
-  select(-colonist_id) %>%
-  summarize(across(everything(), list(sd = sd))) %>%
-  rbind(sd_traits) 
-
-summary_stats <- cbind(summary_stats_mean, summary_stats_sd)
 
 summary_stats_cor <- all_simulations %>%
   select(rep,EX, OP) %>%
@@ -260,20 +252,35 @@ summary_stats_cor <- all_simulations %>%
 summary_stats_cor
 ```
 
+##### Plotting the EX-OP correlations across the simulations
 
 ```{r all-sim-cor-plot}
 summary_stats_cor %>%
   ggplot(aes(x = correlation)) +
-  geom_density()
+  geom_density() + 
+  labs(x = 'Extraversion-Openness Correlation Coefficients',
+       y = 'Count')
 ```
 
-To get a stable estimate, you would need ...
+The correlations between extraversion and openness across the 100 simulations were consistently positive, but ranged in strength. To get a more stable estimate of the correlation, we would need to increase the simulated sample size past n = 100, maybe up to 250 or 500. 
+
+##### Plotting the means and standard deviations across the simulations
 
 ```{r mean-parameter-plot}
-
+summary_stats %>%
+  ggplot(aes(x = EX_mean)) +
+  geom_density() +
+  annotate("text", x = -0.5, y = 4.75, label = paste("Population Mean = -.5")) +
+  labs(x = 'Mean of Extraversion',
+       y = 'Count')
 ```
 
 ```{r sd-parameter-plot}
- 
+summary_stats %>%
+  ggplot(aes(x = EX_sd)) +
+  geom_density() +
+  annotate("text", x = 1, y = 5.75, label = paste("Population SD = 1")) +
+  labs(x = 'Standard Deviation of Extraversion',
+       y = 'Count')
 ```
 

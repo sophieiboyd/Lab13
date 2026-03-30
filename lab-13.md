@@ -37,12 +37,14 @@ df_colonists %>%
 
 ![](lab-13_files/figure-gfm/age-dist-1.png)<!-- -->
 
-Age follows a normal distribution, centered at around 30 years old. The
-spread of the distribution is the same regardless of seed because the
-standard deviation was set at the same value each time (referring to the
-plot in the lab instructions).
-
 #### 1.2
+
+Age follows a normal distribution, centered at 30 years old. The spread
+of the distribution is the same regardless of seed because the standard
+deviation was set at the same value each time (referring to the plot in
+the lab instructions).
+
+#### 1.3
 
 ``` r
 df_colonists$role <- rep(c("engineer", "scientist", "medic"),
@@ -50,8 +52,6 @@ df_colonists$role <- rep(c("engineer", "scientist", "medic"),
                          length.out = 100
                          )
 ```
-
-#### 1.3
 
 I wanted approximately equal numbers of engineers, medics, and
 scientists, so I used method C.
@@ -122,7 +122,7 @@ df_colonists %>%
 
 ### Exercise 3: Exploring correlations with mvnorm
 
-#### 3.1
+#### 3.2
 
 ``` r
 set.seed(123)
@@ -150,7 +150,7 @@ traits_dataframe %>%
 df_colonists <- cbind(df_colonists, traits_dataframe)
 ```
 
-#### 3.2
+#### 3.3
 
 ``` r
 seed <- 123
@@ -158,24 +158,10 @@ set.seed(seed)
 
 library(MASS)
 library(Matrix)
-```
-
-    ## 
-    ## Attaching package: 'Matrix'
-
-    ## The following objects are masked from 'package:tidyr':
-    ## 
-    ##     expand, pack, unpack
-
-``` r
 library(tidyverse)
 library(conflicted)
 conflicts_prefer(dplyr::select())
-```
 
-    ## [conflicted] Will prefer dplyr::select over any other package.
-
-``` r
 n_colonists <- 100
 
 var_names <- c("EX", "ES", "AG", "CO", "OP")
@@ -212,68 +198,58 @@ bigfive_data <- cbind.data.frame(
 ```
 
 ``` r
-mean(bigfive_data$EX)
+summary_stats_mean <- bigfive_data %>%
+  select(-colonist_id, -seed) %>%
+  summarize(across(everything(), list(mean = mean))) %>%
+  rbind(mean_traits)
+
+summary_stats_sd <- bigfive_data %>%
+  select(-colonist_id, -seed) %>%
+  summarize(across(everything(), list(sd = sd))) %>%
+  rbind(sd_traits) 
+
+summary_stats <- cbind(summary_stats_mean, summary_stats_sd)
+
+
+summary_stats_cor <- bigfive_data %>%
+  select(-colonist_id, -seed) %>%
+  cor()  %>%
+  rbind(cor_matrix_bigfive)
+
+summary_stats
 ```
 
-    ## [1] -0.429507
+    ##     EX_mean   ES_mean    AG_mean   CO_mean     OP_mean    EX_sd     ES_sd
+    ## 1 -0.429507 0.4484725 0.08054744 0.4261922 -0.05340893 1.026452 0.8757419
+    ## 2 -0.500000 0.5000000 0.25000000 0.5000000  0.00000000 1.000000 0.9000000
+    ##       AG_sd     CO_sd     OP_sd
+    ## 1 0.9680021 0.9656233 0.8527133
+    ## 2 1.0000000 1.0000000 1.0000000
 
 ``` r
-sd(bigfive_data$EX)
+summary_stats_cor
 ```
 
-    ## [1] 1.026452
+    ##           EX          ES         AG        CO          OP
+    ## EX 1.0000000  0.18234257 0.20022451 0.2290318  0.27350100
+    ## ES 0.1823426  1.00000000 0.14030819 0.2327018 -0.08944713
+    ## AG 0.2002245  0.14030819 1.00000000 0.1867081  0.03034941
+    ## CO 0.2290318  0.23270179 0.18670814 1.0000000  0.11247662
+    ## OP 0.2735010 -0.08944713 0.03034941 0.1124766  1.00000000
+    ## EX 1.0000000  0.25990000 0.19720000 0.1860000  0.29490000
+    ## ES 0.2599000  1.00000000 0.15760000 0.2306000  0.07200000
+    ## AG 0.1972000  0.15760000 1.00000000 0.2866000  0.19510000
+    ## CO 0.1860000  0.23060000 0.28660000 1.0000000  0.15740000
+    ## OP 0.2949000  0.07200000 0.19510000 0.1574000  1.00000000
 
-``` r
-mean(bigfive_data$ES)
-```
-
-    ## [1] 0.4484725
-
-``` r
-sd(bigfive_data$ES)
-```
-
-    ## [1] 0.8757419
-
-``` r
-mean(bigfive_data$AG)
-```
-
-    ## [1] 0.08054744
-
-``` r
-sd(bigfive_data$AG)
-```
-
-    ## [1] 0.9680021
-
-``` r
-mean(bigfive_data$CO)
-```
-
-    ## [1] 0.4261922
-
-``` r
-sd(bigfive_data$CO)
-```
-
-    ## [1] 0.9656233
-
-``` r
-mean(bigfive_data$OP)
-```
-
-    ## [1] -0.05340893
-
-``` r
-sd(bigfive_data$OP)
-```
-
-    ## [1] 0.8527133
+The means, standard deviations, and correlations from the simulation
+were close to the defined population parameters.
 
 ### Exercise 4: Preparing for the unexpected
 
 #### 4.1
+
+##### Running the repeated simulations and extracting descriptives/correlations by rep
 
 ``` r
 library(dplyr)
@@ -302,8 +278,8 @@ simulated_data
 }
 
 summary_stats <- all_simulations %>%
-  group_by(rep) %>%
   select(EX, rep) %>%
+  group_by(rep) %>%
   summarize(across(everything(), list(mean = mean, sd = sd)))
 
 summary_stats
@@ -325,19 +301,66 @@ summary_stats
     ## # ℹ 90 more rows
 
 ``` r
-summary_stats_cor <- simulated_data %>%
+summary_stats_cor <- all_simulations %>%
+  select(rep,EX, OP) %>%
   group_by(rep) %>%
-  select(rep, EX, OP) %>%
-  cor() 
-```
+  summarise(correlation = cor(EX, OP))
 
-    ## Warning in cor(.): the standard deviation is zero
-
-``` r
 summary_stats_cor
 ```
 
-    ##     rep        EX        OP
-    ## rep   1        NA        NA
-    ## EX   NA 1.0000000 0.3120541
-    ## OP   NA 0.3120541 1.0000000
+    ## # A tibble: 100 × 2
+    ##      rep correlation
+    ##    <int>       <dbl>
+    ##  1     1       0.274
+    ##  2     2       0.233
+    ##  3     3       0.409
+    ##  4     4       0.192
+    ##  5     5       0.336
+    ##  6     6       0.268
+    ##  7     7       0.148
+    ##  8     8       0.390
+    ##  9     9       0.336
+    ## 10    10       0.242
+    ## # ℹ 90 more rows
+
+##### Plotting the EX-OP correlations across the simulations
+
+``` r
+summary_stats_cor %>%
+  ggplot(aes(x = correlation)) +
+  geom_density() + 
+  labs(x = 'Extraversion-Openness Correlation Coefficients',
+       y = 'Count')
+```
+
+![](lab-13_files/figure-gfm/all-sim-cor-plot-1.png)<!-- -->
+
+The correlations between extraversion and openness across the 100
+simulations were consistently positive, but ranged in strength. To get a
+more stable estimate of the correlation, we would need to increase the
+simulated sample size past n = 100, maybe up to 250 or 500.
+
+##### Plotting the means and standard deviations across the simulations
+
+``` r
+summary_stats %>%
+  ggplot(aes(x = EX_mean)) +
+  geom_density() +
+  annotate("text", x = -0.5, y = 4.75, label = paste("Population Mean = -.5")) +
+  labs(x = 'Mean of Extraversion',
+       y = 'Count')
+```
+
+![](lab-13_files/figure-gfm/mean-parameter-plot-1.png)<!-- -->
+
+``` r
+summary_stats %>%
+  ggplot(aes(x = EX_sd)) +
+  geom_density() +
+  annotate("text", x = 1, y = 5.75, label = paste("Population SD = 1")) +
+  labs(x = 'Standard Deviation of Extraversion',
+       y = 'Count')
+```
+
+![](lab-13_files/figure-gfm/sd-parameter-plot-1.png)<!-- -->
