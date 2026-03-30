@@ -37,7 +37,8 @@ df_colonists %>%
        y = 'Frequency') 
 ```
 
-Age follows a normal distribution, centered at around 30 years old. The spread of the distribution is the same regardless of seed because the standard deviation was set at the same value each time (referring to the plot in the lab instructions). 
+Age follows a normal distribution, centered at 30 years old. 
+The spread of the distribution is the same regardless of seed because the standard deviation was set at the same value each time (referring to the plot in the lab instructions). 
 
 #### 1.2
 
@@ -111,7 +112,7 @@ df_colonists %>%
 
 ### Exercise 3: Exploring correlations with mvnorm
 
-#### 3.1
+#### 3.2
 
 ```{r agreeableness-resilience, message=FALSE}
 set.seed(123)
@@ -135,7 +136,7 @@ traits_dataframe %>%
 df_colonists <- cbind(df_colonists, traits_dataframe)
 ```
 
-#### 3.2
+#### 3.3
 
 ```{r bigfive-simulation}
 seed <- 123
@@ -183,21 +184,30 @@ bigfive_data <- cbind.data.frame(
 ```
 
 ```{r bigfive-summary}
-mean(bigfive_data$EX)
-sd(bigfive_data$EX)
 
-mean(bigfive_data$ES)
-sd(bigfive_data$ES)
+summary_stats_mean <- bigfive_data %>%
+  select(-colonist_id, -seed) %>%
+  summarize(across(everything(), list(mean = mean))) %>%
+  rbind(mean_traits)
 
-mean(bigfive_data$AG)
-sd(bigfive_data$AG)
+summary_stats_sd <- bigfive_data %>%
+  select(-colonist_id, -seed) %>%
+  summarize(across(everything(), list(sd = sd))) %>%
+  rbind(sd_traits) 
 
-mean(bigfive_data$CO)
-sd(bigfive_data$CO)
+summary_stats <- cbind(summary_stats_mean, summary_stats_sd)
 
-mean(bigfive_data$OP)
-sd(bigfive_data$OP)
+
+summary_stats_cor <- bigfive_data %>%
+  select(-colonist_id, -seed) %>%
+  cor()  %>%
+  rbind(cor_matrix_bigfive)
+
+summary_stats
+summary_stats_cor
 ```
+
+The means, standard deviations, and correlations from the simulation were close to the defined population parameters.
 
 ### Exercise 4: Preparing for the unexpected
 
@@ -230,12 +240,40 @@ summary_stats <- all_simulations %>%
 
 summary_stats
 
-summary_stats_cor <- simulated_data %>%
+summary_stats_mean <- all_simulations %>%
+  select(-colonist_id) %>%
+  summarize(across(everything(), list(mean = mean))) %>%
+  rbind(mean_traits)
+
+summary_stats_sd <- all_simulations %>%
+  select(-colonist_id) %>%
+  summarize(across(everything(), list(sd = sd))) %>%
+  rbind(sd_traits) 
+
+summary_stats <- cbind(summary_stats_mean, summary_stats_sd)
+
+summary_stats_cor <- all_simulations %>%
+  select(rep,EX, OP) %>%
   group_by(rep) %>%
-  select(rep, EX, OP) %>%
-  cor() 
+  summarise(correlation = cor(EX, OP))
 
 summary_stats_cor
+```
 
+
+```{r all-sim-cor-plot}
+summary_stats_cor %>%
+  ggplot(aes(x = correlation)) +
+  geom_density()
+```
+
+To get a stable estimate, you would need ...
+
+```{r mean-parameter-plot}
+
+```
+
+```{r sd-parameter-plot}
+ 
 ```
 
